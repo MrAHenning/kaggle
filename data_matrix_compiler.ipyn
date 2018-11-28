@@ -1,0 +1,751 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import sys\n",
+    "reload(sys)\n",
+    "sys.setdefaultencoding('utf8')\n",
+    "from __future__ import division\n",
+    "from __future__ import print_function\n",
+    "import matplotlib.pyplot as plt\n",
+    "import seaborn as sns\n",
+    "import numpy as np\n",
+    "import pandas as pd\n",
+    "from collections import Counter\n",
+    "from nltk.corpus import stopwords\n",
+    "import string\n",
+    "from matplotlib import rcParams\n",
+    "from itertools import chain\n",
+    "from nltk import everygrams, word_tokenize\n",
+    "import pprint\n",
+    "import enchant\n",
+    "import nltk\n",
+    "from nltk.util import ngrams\n",
+    "from nltk import pos_tag_sents, word_tokenize"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def column_compressor(row):\n",
+    "    new_list = []\n",
+    "    for item in row:\n",
+    "        new_list.append(' '.join(item))\n",
+    "    return new_list"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def stringify(row):\n",
+    "    for item in row:\n",
+    "        for x in item:\n",
+    "            x = str(x)\n",
+    "    return row"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def spellcheck(string):\n",
+    "    dictionary = enchant.Dict(\"en_US\")\n",
+    "    number_of_misspelled_words = 0\n",
+    "    for word in string.split():\n",
+    "        if dictionary.check(word) == False:\n",
+    "            number_of_misspelled_words = number_of_misspelled_words + 1\n",
+    "            print word\n",
+    "        else:\n",
+    "            number_of_misspelled_words = number_of_misspelled_words\n",
+    "    return number_of_misspelled_words"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def contains_spelling_errors(value):\n",
+    "    boolean = False\n",
+    "    if value > 0:\n",
+    "        boolean = True\n",
+    "    else:\n",
+    "        boolean = boolean\n",
+    "    return boolean"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def spellingBooleanFrame(sincere_df, insincere_df):\n",
+    "    insincere_df['contains_spelling_errors'] = insincere_df['spelling_error_count'].apply(contains_spelling_errors)\n",
+    "    sincere_df['contains_spelling_errors'] = sincere_df['spelling_error_count'].apply(contains_spelling_errors)\n",
+    "    return sincere_df, insincere_df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def spelling_frame():\n",
+    "    # WARNING: DO NOT EXECUTE UNLESS 100% SURE THIS CODE IS ACCURATE (LONG RUNNING TIME)\n",
+    "    frame = df_train.read_csv()\n",
+    "    frame['spelling_error_count'] = frame['question_text_processed'].apply(spellcheck)\n",
+    "    return frame"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def word_ngram_frame(number):\n",
+    "    sincere = pd.read_csv('sincere_training_data_with_POS.csv', index_col = 0)\n",
+    "    insincere = pd.read_csv('insincere_training_data_with_POS.csv', index_col = 0)\n",
+    "\n",
+    "    insincere_ngram['question_text'] = insincere_ngram['question_text'].apply(\n",
+    "        lambda x: [' '.join(ng) for ng in everygrams(word_tokenize(x), number)])\n",
+    "    sincere_ngram['question_text'] = sincere_ngram['question_text'].apply(\n",
+    "        lambda x: [' '.join(ng) for ng in everygrams(word_tokenize(x), number)])\n",
+    "    return sincere_ngram, insincere_ngram"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def gram(row):\n",
+    "    token = nltk.word_tokenize(row)\n",
+    "    bigram = list(ngrams(token, 5)) \n",
+    "    return bigram\n",
+    "\n",
+    "def POS_ngram_frame(frame_ngram, number_ngram):\n",
+    "    frame_ngram['POS_' + str(number_ngram) + \"_gram\"] = frame_ngram['question_text'].apply(gram)\n",
+    "    return frame_ngram"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def POS_frame(sincere_df, insincere_df):\n",
+    "    \n",
+    "    compressor = lambda x : zip(*x)[1]\n",
+    "    joiner = lambda x : ' '.join(x)\n",
+    "\n",
+    "    question_text = insincere_df['question_text'].tolist()\n",
+    "    tagged_texts = pos_tag_sents(map(word_tokenize, question_text))\n",
+    "    insincere_df['POS'] = tagged_texts\n",
+    "    insincere_df['POS'] = insincere_df['POS'].apply(compressor)\n",
+    "    POS_list = insincere_df['POS'].tolist()\n",
+    "    insincere_df['POS'] = insincere_df['POS'].apply(joiner)\n",
+    "    \n",
+    "    question_text = sincere_df['question_text'].tolist()\n",
+    "    tagged_texts = pos_tag_sents(map(word_tokenize, question_text))\n",
+    "    sincere_df['POS'] = tagged_texts\n",
+    "    sincere_df['POS'] = sincere_df['POS'].apply(compressor)\n",
+    "    POS_list = sincere_df['POS'].tolist()\n",
+    "    sincere_df['POS'] = sincere_df['POS'].apply(joiner)\n",
+    "    return sincere_df, insincere_df"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#df_train_total = pd.read_csv('/home/andrew/Desktop/Kaggle/Data/train.csv')\n",
+    "#sincere = pd.read_csv('/home/andrew/Desktop/Kaggle/Data/sincere_data_raw.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#insincere = pd.read_csv('/home/andrew/Desktop/Kaggle/Data/insincere_data_raw.csv', encoding = 'utf_8', index_col = 0)\n",
+    "                        \n",
+    "#stop = stopwords.words('english')\n",
+    "#pat = r'\\b(?:{})\\b'.format('|'.join(stop))\n",
+    "                        \n",
+    "#df_train['question_text'] = df_train['question_text'].str.lower()\n",
+    "#df_train['question_text'] = df_train['question_text'].str.replace(pat, '')\n",
+    "#df_train['question_text'] = df_train['question_text'].str.replace('[{}]'.format(string.punctuation), '')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#columnsTitles = ['qid', 'target', 'question_text', 'question_text_processed', 'spelling_error_count']\n",
+    "#sincere = sincere.reindex(columns = columnsTitles)\n",
+    "#sincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#columnsTitles = ['qid', 'target', 'question_text', 'question_text_processed', 'spelling_error_count']\n",
+    "#insincere = insincere.reindex(columns = columnsTitles)\n",
+    "#insincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere, insincere = spellingBooleanFrame(sincere, insincere)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#insincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.to_csv('sincere_complete_matrix.csv', encoding = 'utf_8')\n",
+    "#insincere.to_csv('insincere_complete_matrix.csv', encoding = 'utf_8')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "#sincere = pd.read_csv('sincere_complete_matrix.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#insincere = pd.read_csv('insincere_complete_matrix.csv', encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#insincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.to_csv('sincere_complete_matrix.csv', encoding = 'utf_8')\n",
+    "#insincere.to_csv('insincere_complete_matrix.csv', encoding = 'utf_8')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {
+    "scrolled": false
+   },
+   "outputs": [],
+   "source": [
+    "#sincere = pd.read_csv('sincere_complete_matrix.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#insincere = pd.read_csv('insincere_complete_matrix.csv', encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere, insincere = POS_frame(sincere, insincere)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#insincere.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere.to_csv('sincere_complete_matrix.csv', encoding = 'utf_8')\n",
+    "#insincere.to_csv('insincere_complete_matrix.csv', encoding = 'utf_8')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#sincere = pd.read_csv('sincere_training_data_with_POS.csv', encoding = 'utf_8', index_col = 0)\n",
+    "insincere = pd.read_csv('insincere_training_data_with_POS.csv', encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#sp1, sp2, sp3, sp4, sp5, sp6, sp7, sp8, sp9, \\\n",
+    "#sp10, sp11, sp12, sp13, sp14, sp15, sp16 = np.array_split(sincere, 16)\n",
+    "#num = 5"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "####BATCH 1####\n",
+    "#sp1  = POS_ngram_frame(sp1, num)\n",
+    "#sp1.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp1.csv', encoding = 'utf_8')\n",
+    "#sp2  = POS_ngram_frame(sp2, num)\n",
+    "#sp2.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp2.csv', encoding = 'utf_8')\n",
+    "#sp3  = POS_ngram_frame(sp3, num)\n",
+    "#sp3.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp3.csv', encoding = 'utf_8')\n",
+    "#sp4  = POS_ngram_frame(sp4, num)\n",
+    "#sp4.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp4.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 2####\n",
+    "#sp5  = POS_ngram_frame(sp5, num)\n",
+    "#sp5.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp5.csv', encoding = 'utf_8')\n",
+    "#sp6  = POS_ngram_frame(sp6, num)\n",
+    "#sp6.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp6.csv', encoding = 'utf_8')\n",
+    "#sp7  = POS_ngram_frame(sp7, num)\n",
+    "#sp7.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp7.csv', encoding = 'utf_8')\n",
+    "#sp8  = POS_ngram_frame(sp8, num)\n",
+    "#sp8.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp8.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 3####\n",
+    "#sp9  = POS_ngram_frame(sp9, num)\n",
+    "#sp9.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp9.csv', encoding = 'utf_8')\n",
+    "#sp10  = POS_ngram_frame(sp10, num)\n",
+    "#sp10.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp10.csv', encoding = 'utf_8')\n",
+    "#sp11  = POS_ngram_frame(sp11, num)\n",
+    "#sp11.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp11.csv', encoding = 'utf_8')\n",
+    "#sp12  = POS_ngram_frame(sp12, num)\n",
+    "#sp12.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp12.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 4####\n",
+    "#sp13  = POS_ngram_frame(sp13, num)\n",
+    "#sp13.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp13.csv', encoding = 'utf_8')\n",
+    "#sp14  = POS_ngram_frame(sp14, num)\n",
+    "#sp14.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp14.csv', encoding = 'utf_8')\n",
+    "#sp15  = POS_ngram_frame(sp15, num)\n",
+    "#sp15.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp15.csv', encoding = 'utf_8')\n",
+    "#sp16  = POS_ngram_frame(sp16, num)\n",
+    "#sp16.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp16.csv', encoding = 'utf_8')\n",
+    "\n",
+    "#sp1.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "sp1, sp2, sp3, sp4, sp5, sp6, sp7, sp8, sp9, \\\n",
+    "sp10, sp11, sp12, sp13, sp14, sp15, sp16 = np.array_split(insincere, 16)\n",
+    "num = 5"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "####BATCH 1####\n",
+    "sp1  = POS_ngram_frame(sp1, num)\n",
+    "sp1.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp1.csv', encoding = 'utf_8')\n",
+    "sp2  = POS_ngram_frame(sp2, num)\n",
+    "sp2.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp2.csv', encoding = 'utf_8')\n",
+    "sp3  = POS_ngram_frame(sp3, num)\n",
+    "sp3.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp3.csv', encoding = 'utf_8')\n",
+    "sp4  = POS_ngram_frame(sp4, num)\n",
+    "sp4.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp4.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 2####\n",
+    "sp5  = POS_ngram_frame(sp5, num)\n",
+    "sp5.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp5.csv', encoding = 'utf_8')\n",
+    "sp6  = POS_ngram_frame(sp6, num)\n",
+    "sp6.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp6.csv', encoding = 'utf_8')\n",
+    "sp7  = POS_ngram_frame(sp7, num)\n",
+    "sp7.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp7.csv', encoding = 'utf_8')\n",
+    "sp8  = POS_ngram_frame(sp8, num)\n",
+    "sp8.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp8.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 3####\n",
+    "sp9  = POS_ngram_frame(sp9, num)\n",
+    "sp9.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp9.csv', encoding = 'utf_8')\n",
+    "sp10  = POS_ngram_frame(sp10, num)\n",
+    "sp10.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp10.csv', encoding = 'utf_8')\n",
+    "sp11  = POS_ngram_frame(sp11, num)\n",
+    "sp11.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp11.csv', encoding = 'utf_8')\n",
+    "sp12  = POS_ngram_frame(sp12, num)\n",
+    "sp12.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp12.csv', encoding = 'utf_8')\n",
+    "\n",
+    "####BATCH 4####\n",
+    "sp13  = POS_ngram_frame(sp13, num)\n",
+    "sp13.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp13.csv', encoding = 'utf_8')\n",
+    "sp14  = POS_ngram_frame(sp14, num)\n",
+    "sp14.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp14.csv', encoding = 'utf_8')\n",
+    "sp15  = POS_ngram_frame(sp15, num)\n",
+    "sp15.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp15.csv', encoding = 'utf_8')\n",
+    "sp16  = POS_ngram_frame(sp16, num)\n",
+    "sp16.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp16.csv', encoding = 'utf_8')\n",
+    "\n",
+    "sp1.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#READ IN BATCHES AND COMBINE INTO A SINGLE DATAFRAME#\n",
+    "#sp1 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp1.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp2 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp2.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp3 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp3.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp4 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp4.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "#batch_1_frame = pd.concat([sp1,sp2,sp3,sp4])\n",
+    "#batch_1_frame.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch1.csv', encoding = 'utf_8')\n",
+    "\n",
+    "#sp5 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp5.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp6 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp6.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp7 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp7.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp8 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp8.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "#batch_2_frame = pd.concat([sp5,sp6,sp7,sp8])\n",
+    "#batch_2_frame.to_csv('sincere_training_data_with_POS_' + str(num) + '-grams_batch2.csv', encoding = 'utf_8')\n",
+    "\n",
+    "#sp9 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp9.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp10= pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp10.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp11= pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp11.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp12= pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp12.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "#batch_3_frame = pd.concat([sp9,sp10,sp11,sp12])\n",
+    "#batch_3_frame.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch3.csv', encoding = 'utf_8')\n",
+    "\n",
+    "#sp13 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp13.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp14 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp14.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp15 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp15.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#sp16 = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_Sp16.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "#batch_4_frame = pd.concat([sp13,sp14,sp15,sp16])\n",
+    "#batch_4_frame.to_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch4.csv', encoding = 'utf_8')\n",
+    "\n",
+    "#batch_1_frame = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch1.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#batch_2_frame = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch2.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#batch_3_frame = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch3.csv', encoding = 'utf_8', index_col = 0)\n",
+    "#batch_4_frame = pd.read_csv('sincere_training_data_with_POS_' + str(num)+ '-grams_batch4.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "#total_ngram_frame = pd.concat([batch_1_frame, batch_2_frame, batch_3_frame, batch_4_frame])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "#READ IN BATCHES AND COMBINE INTO A SINGLE DATAFRAME#\n",
+    "sp1 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp1.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp2 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp2.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp3 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp3.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp4 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp4.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "batch_1_frame = pd.concat([sp1,sp2,sp3,sp4])\n",
+    "batch_1_frame.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch1.csv', encoding = 'utf_8')\n",
+    "\n",
+    "sp5 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp5.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp6 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp6.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp7 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp7.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp8 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp8.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "batch_2_frame = pd.concat([sp5,sp6,sp7,sp8])\n",
+    "batch_2_frame.to_csv('insincere_training_data_with_POS_' + str(num) + '-grams_batch2.csv', encoding = 'utf_8')\n",
+    "\n",
+    "sp9 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp9.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp10= pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp10.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp11= pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp11.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp12= pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp12.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "batch_3_frame = pd.concat([sp9,sp10,sp11,sp12])\n",
+    "batch_3_frame.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch3.csv', encoding = 'utf_8')\n",
+    "\n",
+    "sp13 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp13.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp14 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp14.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp15 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp15.csv', encoding = 'utf_8', index_col = 0)\n",
+    "sp16 = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_Sp16.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "batch_4_frame = pd.concat([sp13,sp14,sp15,sp16])\n",
+    "batch_4_frame.to_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch4.csv', encoding = 'utf_8')\n",
+    "\n",
+    "batch_1_frame = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch1.csv', encoding = 'utf_8', index_col = 0)\n",
+    "batch_2_frame = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch2.csv', encoding = 'utf_8', index_col = 0)\n",
+    "batch_3_frame = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch3.csv', encoding = 'utf_8', index_col = 0)\n",
+    "batch_4_frame = pd.read_csv('insincere_training_data_with_POS_' + str(num)+ '-grams_batch4.csv', encoding = 'utf_8', index_col = 0)\n",
+    "\n",
+    "total_ngram_frame = pd.concat([batch_1_frame, batch_2_frame, batch_3_frame, batch_4_frame])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#total_ngram_frame.to_csv('sincere_training_data_POS_' + str(num)+ '-grams_processed.csv', encoding = 'utf_8')\n",
+    "#total_ngram_frame.index"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "total_ngram_frame.to_csv('insincere_training_data_POS_' + str(num)+ '-grams_processed.csv', encoding = 'utf_8')\n",
+    "total_ngram_frame.index"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#working_file = pd.read_csv('/home/andrew/Desktop/Kaggle/working/sincere_complete_matrix.csv',\n",
+    "#                           encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "working_file = pd.read_csv('/home/andrew/Desktop/Kaggle/working/complete_matrices/insincere_complete_matrix.csv',\n",
+    "                           encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#POS_1_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/POS-1-gram-processing/sincere_training_data_POS_1-grams_processed.csv',\n",
+    "#                              encoding = 'utf_8', index_col = 0)\n",
+    "#POS_2_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/POS-2-gram-processing/sincere_training_data_POS_2-grams_processed.csv',\n",
+    "#                              encoding = 'utf_8', index_col = 0)\n",
+    "#POS_3_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/POS-3-gram-processing/sincere_training_data_POS_3-grams_processed.csv',\n",
+    "#                              encoding = 'utf_8', index_col = 0)\n",
+    "#POS_4_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/POS-4-gram-processing/sincere_training_data_POS_4-grams_processed.csv',\n",
+    "#                              encoding = 'utf_8', index_col = 0)\n",
+    "#POS_5_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/POS-5-gram-processing/sincere_training_data_POS_5-grams_processed.csv',\n",
+    "#                              encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#working_file['POS_1_gram'] = POS_1_gram_frame['POS_1_gram']\n",
+    "#working_file['POS_2_gram'] = POS_2_gram_frame['POS_2_gram']\n",
+    "#working_file['POS_3_gram'] = POS_3_gram_frame['POS_3_gram']\n",
+    "#working_file['POS_4_gram'] = POS_4_gram_frame['POS_4_gram']\n",
+    "#working_file['POS_5_gram'] = POS_5_gram_frame['POS_5_gram']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "POS_1_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/Insincere-POS-1-gram-processing/insincere_training_data_POS_1-grams_processed.csv',\n",
+    "                              encoding = 'utf_8', index_col = 0)\n",
+    "POS_2_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/Insincere-POS-2-gram-processing/insincere_training_data_POS_2-grams_processed.csv',\n",
+    "                              encoding = 'utf_8', index_col = 0)\n",
+    "POS_3_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/Insincere-POS-3-gram-processing/insincere_training_data_POS_3-grams_processed.csv',\n",
+    "                              encoding = 'utf_8', index_col = 0)\n",
+    "POS_4_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/Insincere-POS-4-gram-processing/insincere_training_data_POS_4-grams_processed.csv',\n",
+    "                              encoding = 'utf_8', index_col = 0)\n",
+    "POS_5_gram_frame = pd.read_csv('/home/andrew/Desktop/Kaggle/working/Insincere-POS-5-gram-processing/insincere_training_data_POS_5-grams_processed.csv',\n",
+    "                              encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "working_file['POS_1_gram'] = POS_1_gram_frame['POS_1_gram']\n",
+    "working_file['POS_2_gram'] = POS_2_gram_frame['POS_2_gram']\n",
+    "working_file['POS_3_gram'] = POS_3_gram_frame['POS_3_gram']\n",
+    "working_file['POS_4_gram'] = POS_4_gram_frame['POS_4_gram']\n",
+    "working_file['POS_5_gram'] = POS_5_gram_frame['POS_5_gram']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####SINCERE SPLIT####\n",
+    "#working_file.to_csv('/home/andrew/Desktop/Kaggle/working/sincere_complete_matrix.csv', encoding = 'utf_8')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 15,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "####INSINCERE SPLIT####\n",
+    "working_file.to_csv('/home/andrew/Desktop/Kaggle/working/insincere_complete_matrix.csv', encoding = 'utf_8')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "#working_file = pd.read_csv('/home/andrew/Desktop/Kaggle/working/sincere_complete_matrix.csv', encoding = 'utf_8', index_col = 0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 2",
+   "language": "python",
+   "name": "python2"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.15rc1"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
